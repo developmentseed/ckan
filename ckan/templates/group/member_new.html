@@ -11,6 +11,7 @@
   </h1>
   {% block form %}
   <form class="dataset-form form-horizontal add-member-form" method='post'>
+    {{ form.hidden('csrf-token', h.generate_csrf_token()) }}
     <div class="row-fluid">
       <div class="control-group control-medium">
         {% if not user %}

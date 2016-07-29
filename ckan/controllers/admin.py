@@ -4,6 +4,7 @@ import ckan.lib.base as base
 import ckan.lib.helpers as h
 import ckan.lib.app_globals as app_globals
 import ckan.lib.navl.dictization_functions as dict_fns
+import ckan.lib.csrf_token as csrf_token
 import ckan.model as model
 import ckan.logic as logic
 import ckan.plugins as plugins
@@ -69,6 +70,12 @@ class AdminController(base.BaseController):
             h.redirect_to(controller='admin', action='config')
 
         if request.method == 'POST':
+            try:
+                csrf_token.validate(data_dict.get('csrf-token', ''))
+            except csrf_token.CsrfTokenValidationError:
+                h.flash_error(_('Security token error, please try again'))
+                return base.render('admin/confirm_reset.html')
+
             # remove sys info items
             for item in self._get_config_form_items():
                 name = item['name']
@@ -92,10 +99,16 @@ class AdminController(base.BaseController):
                             logic.parse_params(
                                 request.POST, ignore_keys=CACHE_PARAMETERS))))
 
+                csrf_token.validate(data_dict.get('csrf-token', ''))
                 del data_dict['save']
+                del data_dict['csrf-token']
 
                 data = logic.get_action('config_option_update')(
                     {'user': c.user}, data_dict)
+
+            except csrf_token.CsrfTokenValidationError:
+                h.flash_error(_('Security token error, please try again'))
+                return base.render('admin/config.html')
             except logic.ValidationError, e:
                 errors = e.error_dict
                 error_summary = e.error_summary
@@ -130,6 +143,11 @@ class AdminController(base.BaseController):
                                   in request.params):
             return base.render('admin/trash.html')
         else:
+            try:
+                csrf_token.validate(request.POST.get('csrf-token', ''))
+            except csrf_token.CsrfTokenValidationError:
+                h.flash_error(_('Security token error, please try again'))
+                return base.render('admin/trash.html')
             # NB: we repeat retrieval of of revisions
             # this is obviously inefficient (but probably not *that* bad)
             # but has to be done to avoid (odd) sqlalchemy errors (when doing

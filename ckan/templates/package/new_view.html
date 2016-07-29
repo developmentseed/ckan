@@ -1,4 +1,5 @@
 {% extends "package/view_edit_base.html" %}
+{% import 'macros/form.html' as form %}
 
 {% block subtitle %}{{ _('Add view') }} - {{ h.resource_display_name(c.resource) }}{% endblock %}
 {% block form_title %}{{ _('Add view') }}{% endblock %}
@@ -23,6 +24,7 @@
   {% endif %}
 
   <form class="dataset-form dataset-resource-form form-horizontal" method="post" data-module="basic-form resource-form">
+    {{ form.hidden('csrf-token', h.generate_csrf_token()) }}
     {% include 'package/snippets/view_form.html' %}
     <div class="form-actions">
         <button class="btn {% if not h.resource_view_display_preview(data) %}hide{%endif%}" name="preview" value="True" type="submit">{{ _('Preview') }}</button>

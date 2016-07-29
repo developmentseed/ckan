@@ -13,6 +13,7 @@ import ckan.lib.captcha as captcha
 import ckan.lib.mailer as mailer
 import ckan.lib.navl.dictization_functions as dictization_functions
 import ckan.lib.authenticator as authenticator
+import ckan.lib.csrf_token as csrf_token
 import ckan.plugins as p
 
 from ckan.common import _, c, g, request, response
@@ -337,6 +338,8 @@ class UserController(base.BaseController):
             context['message'] = data_dict.get('log_message', '')
             data_dict['id'] = id
 
+            csrf_token.validate(data_dict.get('csrf-token', ''))
+
             if data_dict['password1'] and data_dict['password2']:
                 identity = {'login': c.user,
                             'password': data_dict['old_password']}
@@ -371,6 +374,10 @@ class UserController(base.BaseController):
             errors = {'oldpassword': [_('Password entered was incorrect')]}
             error_summary = {_('Old Password'): _('incorrect password')}
             return self.edit(id, data_dict, errors, error_summary)
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            return self.edit(id, data_dict, {}, {})
+
 
     def login(self, error=None):
         # Do any plugin login stuff

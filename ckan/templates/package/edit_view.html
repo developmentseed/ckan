@@ -1,4 +1,5 @@
 {% extends "package/view_edit_base.html" %}
+{% import 'macros/form.html' as form %}
 
 {% block subtitle %}{{ _('Edit view') }} - {{ h.resource_display_name(c.resource) }}{% endblock %}
 {% block form_title %}{{ _('Edit view') }}{% endblock %}
@@ -14,6 +15,7 @@
 
 {% block form %}
   <form class="dataset-form dataset-resource-form form-horizontal" method="post" data-module="basic-form resource-form">
+    {{ form.hidden('csrf-token', h.generate_csrf_token()) }}
     {% include 'package/snippets/view_form.html' %}
     <div class="form-actions">
       <button class="btn btn-danger pull-left" name="delete" value="Delete"> {{ _('Delete') }} </button>

@@ -13,6 +13,7 @@ import ckan.lib.search as search
 import ckan.model as model
 import ckan.authz as authz
 import ckan.lib.plugins
+import ckan.lib.csrf_token as csrf_token
 import ckan.plugins as plugins
 from ckan.common import OrderedDict, c, g, request, _
 
@@ -550,6 +551,7 @@ class GroupController(base.BaseController):
         try:
             data_dict = clean_dict(dict_fns.unflatten(
                 tuplize_dict(parse_params(request.params))))
+            csrf_token.validate(data_dict.get('csrf-token', ''))
             data_dict['type'] = group_type or 'group'
             context['message'] = data_dict.get('log_message', '')
             data_dict['users'] = [{'name': c.user, 'capacity': 'admin'}]
@@ -567,6 +569,9 @@ class GroupController(base.BaseController):
             errors = e.error_dict
             error_summary = e.error_summary
             return self.new(data_dict, errors, error_summary)
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            return self.new(data_dict)
 
     def _force_reindex(self, grp):
         ''' When the group name has changed, we need to force a reindex
@@ -581,6 +586,7 @@ class GroupController(base.BaseController):
         try:
             data_dict = clean_dict(dict_fns.unflatten(
                 tuplize_dict(parse_params(request.params))))
+            csrf_token.validate(data_dict.get('csrf-token', ''))
             context['message'] = data_dict.get('log_message', '')
             data_dict['id'] = id
             context['allow_partial_update'] = True
@@ -599,6 +605,9 @@ class GroupController(base.BaseController):
             errors = e.error_dict
             error_summary = e.error_summary
             return self.edit(id, data_dict, errors, error_summary)
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            return self.edit(id, data_dict)
 
     def authz(self, id):
         group = model.Group.get(id)
@@ -644,6 +653,7 @@ class GroupController(base.BaseController):
 
         try:
             if request.method == 'POST':
+                csrf_token.validate(request.POST.get('csrf-token', ''))
                 self._action('group_delete')(context, {'id': id})
                 if group_type == 'organization':
                     h.flash_notice(_('Organization has been deleted.'))
@@ -658,6 +668,9 @@ class GroupController(base.BaseController):
             abort(401, _('Unauthorized to delete group %s') % '')
         except NotFound:
             abort(404, _('Group not found'))
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            return self.edit(id)
         return self._render_template('group/confirm_delete.html', group_type)
 
     def members(self, id):
@@ -697,6 +710,7 @@ class GroupController(base.BaseController):
             if request.method == 'POST':
                 data_dict = clean_dict(dict_fns.unflatten(
                     tuplize_dict(parse_params(request.params))))
+                csrf_token.validate(data_dict.get('csrf-token', ''))
                 data_dict['id'] = id
 
                 email = data_dict.get('email')
@@ -729,6 +743,8 @@ class GroupController(base.BaseController):
             abort(404, _('Group not found'))
         except ValidationError, e:
             h.flash_error(e.error_summary)
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
         return self._render_template('group/member_new.html', group_type)
 
     def member_delete(self, id):
@@ -748,6 +764,7 @@ class GroupController(base.BaseController):
         try:
             user_id = request.params.get('user')
             if request.method == 'POST':
+                csrf_token.validate(request.POST.get('csrf-token', ''))
                 self._action('group_member_delete')(context, {'id': id, 'user_id': user_id})
                 h.flash_notice(_('Group member has been deleted.'))
                 self._redirect_to_this_controller(action='members', id=id)
@@ -758,6 +775,9 @@ class GroupController(base.BaseController):
             abort(401, _('Unauthorized to delete group %s') % '')
         except NotFound:
             abort(404, _('Group not found'))
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            return self._render_template('group/members.html', group_type)
         return self._render_template('group/confirm_delete_member.html', group_type)
 
     def history(self, id):

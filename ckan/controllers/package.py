@@ -14,6 +14,7 @@ import ckan.logic as logic
 import ckan.lib.base as base
 import ckan.lib.maintain as maintain
 import ckan.lib.i18n as i18n
+import ckan.lib.csrf_token as csrf_token
 import ckan.lib.navl.dictization_functions as dict_fns
 import ckan.lib.accept as accept
 import ckan.lib.helpers as h
@@ -595,6 +596,7 @@ class PackageController(base.BaseController):
 
             data['package_id'] = id
             try:
+                csrf_token.validate(data.get('csrf-token', ''))
                 if resource_id:
                     data['id'] = resource_id
                     get_action('resource_update')(context, data)
@@ -607,6 +609,10 @@ class PackageController(base.BaseController):
                                           errors, error_summary)
             except NotAuthorized:
                 abort(401, _('Unauthorized to edit this resource'))
+            except csrf_token.CsrfTokenValidationError:
+                h.flash_error(_('Security token error, please try again'))
+                redirect(h.url_for(controller='package'), action='new_resource', id=id)
+                return
             redirect(h.url_for(controller='package', action='resource_read',
                                id=id, resource_id=resource_id))
 
@@ -705,6 +711,7 @@ class PackageController(base.BaseController):
 
             data['package_id'] = id
             try:
+                csrf_token.validate(data.get('csrf-token', ''))
                 if resource_id:
                     data['id'] = resource_id
                     get_action('resource_update')(context, data)
@@ -719,6 +726,10 @@ class PackageController(base.BaseController):
             except NotFound:
                 abort(404,
                     _('The dataset {id} could not be found.').format(id=id))
+            except csrf_token.CsrfTokenValidationError:
+                h.flash_error(_('Security token error, please try again'))
+                redirect(h.url_for(controller='package'), action='new_resource', id=id)
+                return
             if save_action == 'go-metadata':
                 # XXX race condition if another user edits/deletes
                 data_dict = get_action('package_show')(context, {'id': id})
@@ -917,6 +928,7 @@ class PackageController(base.BaseController):
         try:
             data_dict = clean_dict(dict_fns.unflatten(
                 tuplize_dict(parse_params(request.POST))))
+            csrf_token.validate(data_dict.get('csrf_token', ''))
             if ckan_phase:
                 # prevent clearing of groups etc
                 context['allow_partial_update'] = True
@@ -987,6 +999,9 @@ class PackageController(base.BaseController):
                                  errors, error_summary)
             data_dict['state'] = 'none'
             return self.new(data_dict, errors, error_summary)
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            return self.new(data_dict)
 
     def _save_edit(self, name_or_id, context, package_type=None):
         from ckan.lib.search import SearchIndexError
@@ -995,6 +1010,7 @@ class PackageController(base.BaseController):
         try:
             data_dict = clean_dict(dict_fns.unflatten(
                 tuplize_dict(parse_params(request.POST))))
+            csrf_token.validate(data_dict.get('csrf-token', ''))
             if '_ckan_phase' in data_dict:
                 # we allow partial updates to not destroy existing resources
                 context['allow_partial_update'] = True
@@ -1026,6 +1042,9 @@ class PackageController(base.BaseController):
             errors = e.error_dict
             error_summary = e.error_summary
             return self.edit(name_or_id, data_dict, errors, error_summary)
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            return self.edit(name_or_id, data_dict)
 
     def _form_save_redirect(self, pkgname, action, package_type=None):
         '''This redirects the user to the CKAN package/read page,
@@ -1061,6 +1080,7 @@ class PackageController(base.BaseController):
 
         try:
             if request.method == 'POST':
+                csrf_token.validate(request.POST.get('csrf-token', ''))
                 get_action('package_delete')(context, {'id': id})
                 h.flash_notice(_('Dataset has been deleted.'))
                 h.redirect_to(controller='package', action='search')
@@ -1070,6 +1090,9 @@ class PackageController(base.BaseController):
             abort(401, _('Unauthorized to delete package %s') % '')
         except NotFound:
             abort(404, _('Dataset not found'))
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            h.redirect_to(controller='package', action='edit', id=id)
         return render('package/confirm_delete.html',
                       extra_vars={'dataset_type': dataset_type})
 
@@ -1088,6 +1111,7 @@ class PackageController(base.BaseController):
 
         try:
             if request.method == 'POST':
+                csrf_token.validate(request.POST.get('csrf-token', ''))
                 get_action('resource_delete')(context, {'id': resource_id})
                 h.flash_notice(_('Resource has been deleted.'))
                 h.redirect_to(controller='package', action='read', id=id)
@@ -1097,6 +1121,9 @@ class PackageController(base.BaseController):
             abort(401, _('Unauthorized to delete resource %s') % '')
         except NotFound:
             abort(404, _('Resource not found'))
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            h.redirect_to(controller='package', action='resource_edit', id=id, resource_id=resource_id)
         return render('package/confirm_delete_resource.html',
                       {'dataset_type': self._get_package_type(id)})
 
@@ -1508,6 +1535,8 @@ class PackageController(base.BaseController):
             data['resource_id'] = resource_id
 
             try:
+                csrf_token.validate(data.get('csrf-token', ''))
+                data.pop('csrf-token', None)
                 if to_delete:
                     data['id'] = view_id
                     get_action('resource_view_delete')(context, data)
@@ -1525,6 +1554,11 @@ class PackageController(base.BaseController):
                 ## This should never happen unless the user maliciously changed
                 ## the resource_id in the url.
                 abort(401, _('Unauthorized to edit resource'))
+            except csrf_token.CsrfTokenValidationError:
+                h.flash_error(_('Security toekn error, please try again'))
+                view_type = request.GET.get('view_type')
+                h.redirect_to(controller='package', action='edit_view', id=id, resource_id=resource_id, view_type=view_type)
+                return
             else:
                 if not to_preview:
                     redirect(h.url_for(controller='package',

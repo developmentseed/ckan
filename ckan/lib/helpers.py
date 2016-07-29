@@ -42,6 +42,7 @@ import ckan.lib.datapreview as datapreview
 import ckan.logic as logic
 import ckan.lib.uploader as uploader
 import ckan.authz as authz
+import ckan.lib.csrf_token as csrf_token
 
 from ckan.common import (
     _, ungettext, g, c, request, session, json, OrderedDict
@@ -117,7 +118,7 @@ def get_site_protocol_and_host():
     If `ckan.site_url` is set like this::
 
         ckan.site_url = http://example.com
-    
+
     Then this function would return a tuple `('http', 'example.com')`
     If the setting is missing, `(None, None)` is returned instead.
 
@@ -2076,6 +2077,8 @@ def license_options(existing_license_id=None):
          register[license_id].title if license_id in register else license_id)
         for license_id in license_ids]
 
+def generate_csrf_token():
+    return csrf_token.generate()
 
 # these are the functions that will end up in `h` template helpers
 __allowed_functions__ = [
@@ -2196,4 +2199,5 @@ __allowed_functions__ = [
     'check_config_permission',
     'view_resource_url',
     'license_options',
+    'generate_csrf_token'
 ]

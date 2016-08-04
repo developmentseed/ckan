@@ -21,7 +21,8 @@ this.ckan.module('confirm-action', function (jQuery, _) {
         '<button class="btn btn-primary"></button>',
         '</div>',
         '</div>'
-      ].join('\n')
+      ].join('\n'),
+      csrf: ''
     },
 
     /* Sets up the event listeners for the object. Called internally by
@@ -66,6 +67,11 @@ this.ckan.module('confirm-action', function (jQuery, _) {
         action: this.el.attr('href'),
         method: 'POST'
       });
+      $('input').attr({
+        type: 'hidden',
+        name: 'csrf-token',
+        value: this.el.attr('csrf-token')
+      }).appendTo(form);
       form.appendTo('body').submit();
     },
 

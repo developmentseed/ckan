@@ -928,7 +928,7 @@ class PackageController(base.BaseController):
         try:
             data_dict = clean_dict(dict_fns.unflatten(
                 tuplize_dict(parse_params(request.POST))))
-            csrf_token.validate(data_dict.get('csrf_token', ''))
+            csrf_token.validate(data_dict.get('csrf-token', ''))
             if ckan_phase:
                 # prevent clearing of groups etc
                 context['allow_partial_update'] = True

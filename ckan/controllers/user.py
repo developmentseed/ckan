@@ -192,11 +192,16 @@ class UserController(base.BaseController):
 
         try:
             get_action('user_delete')(context, data_dict)
+            csrf_token.validate(request.POST.get('csrf-token', ''))
             user_index = h.url_for(controller='user', action='index')
             h.redirect_to(user_index)
         except NotAuthorized:
             msg = _('Unauthorized to delete user with id "{user_id}".')
             abort(401, msg.format(user_id=id))
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            return self.edit(id)
+
 
     def generate_apikey(self, id):
         '''Cycle the API key of a user'''
@@ -213,12 +218,15 @@ class UserController(base.BaseController):
         data_dict = {'id': id}
 
         try:
+            csrf_token.validate(request.POST.get('csrf-token', ''))
             result = get_action('user_generate_apikey')(context, data_dict)
         except NotAuthorized:
             abort(401, _('Unauthorized to edit user %s') % '')
         except NotFound:
             abort(404, _('User not found'))
-
+        except csrf_token.CsrfTokenValidationError:
+            h.flash_error(_('Security token error, please try again'))
+            return self.edit(id)
         h.flash_success(_('Profile updated'))
         h.redirect_to(controller='user', action='read', id=result['name'])
 
@@ -445,6 +453,7 @@ class UserController(base.BaseController):
             data_dict = {'id': id}
             user_obj = None
             try:
+                csrf_token.validate(request.POST.get('csrf-token', ''))
                 user_dict = get_action('user_show')(context, data_dict)
                 user_obj = context['user_obj']
             except NotFound:
@@ -468,6 +477,8 @@ class UserController(base.BaseController):
                         h.flash_error(_('No such user: %s') % id)
                 else:
                     h.flash_error(_('No such user: %s') % id)
+            except csrf_token.CsrfTokenValidationError:
+                h.flash_error(_('Security token error, please try again'))
 
             if user_obj:
                 try:

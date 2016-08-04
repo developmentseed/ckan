@@ -13,7 +13,9 @@
   </h1>
   {% block form %}
   <form class="dataset-form form-horizontal add-member-form" method='post'>
-    {{ form.hidden('csrf-token', h.generate_csrf_token()) }}
+    {% set csrf = h.generate_csrf_token() %}
+
+    {{ form.hidden('csrf-token', csrf) }}
 
     <div class="row-fluid">
       <div class="control-group control-medium">
@@ -59,7 +61,7 @@
     <div class="form-actions">
       {% if user %}
         {% set locale = h.dump_json({'content': _('Are you sure you want to delete this member?')}) %}
-        <a href="{% url_for controller='organization', action='member_delete', id=c.group_dict.id, user=user.id %}" class="btn btn-danger pull-left" data-module="confirm-action" data-module-i18n="{{ locale }}">{{ _('Delete') }}</a>
+        <a href="{% url_for controller='organization', action='member_delete', id=c.group_dict.id, user=user.id %}" class="btn btn-danger pull-left" csrf-token="{{ csrf }}" data-module="confirm-action" data-module-i18n="{{ locale }}">{{ _('Delete') }}</a>
         <button class="btn btn-primary" type="submit" name="submit" >
           {{ _('Update Member') }}
         </button>

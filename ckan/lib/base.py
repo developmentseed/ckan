@@ -207,7 +207,8 @@ def render(template_name, extra_vars=None, cache_key=None, cache_type=None,
             pass
     else:
         # We do not want caching.
-        response.headers["Cache-Control"] = "private"
+        response.headers["Cache-Control"] = "no-cache, no-store"
+        response.headers["Pragma"] = "no-cache"
         # Prevent any further rendering from being cached.
         request.environ['__no_cache__'] = True
 

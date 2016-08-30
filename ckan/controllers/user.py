@@ -470,7 +470,6 @@ class UserController(base.BaseController):
             data_dict = {'id': id}
             user_obj = None
             try:
-                csrf_token.validate(request.POST.get('csrf-token', ''))
                 user_dict = get_action('user_show')(context, data_dict)
                 user_obj = context['user_obj']
             except NotFound:
@@ -494,8 +493,6 @@ class UserController(base.BaseController):
                         h.flash_error(_('No such user: %s') % id)
                 else:
                     h.flash_error(_('No such user: %s') % id)
-            except csrf_token.CsrfTokenValidationError:
-                h.flash_error(_('Security token error, please try again'))
 
             if user_obj:
                 try:

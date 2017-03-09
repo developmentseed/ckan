@@ -50,6 +50,8 @@ def datapusher_submit(context, data_dict):
 
     site_url = pylons.config['ckan.site_url']
     callback_url = site_url.rstrip('/') + '/api/3/action/datapusher_hook'
+    log.debug('Sending resource %s to datapusher %s. Call-back ckan url: %s',
+              res_id, datapusher_url, site_url)
 
     user = p.toolkit.get_action('user_show')(context, {'id': context['user']})
 
